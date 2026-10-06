@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FF TACTICAL HUD — Landscape</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --red: #ff1a3c;
+    --red-dim: #b00a20;
+    --red-soft: #ff5a70;
+    --line: rgba(255,26,60,.35);
+    --text: #ffd9df;
+    --text-dim: #8a5a64;
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Consolas', 'Courier New', monospace;
+    background: #050102;
+    overflow: hidden;
+    padding: 14px;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,26,60,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,26,60,.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(255,26,60,.025) 0px,
+      rgba(255,26,60,.025) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    pointer-events: none;
+    animation: scan 8s linear infinite;
+  }
+  @keyframes scan { to { background-position: 0 300px; } }
+
+  /* ============================================================
+     ====== LOCK SCREEN ======
+     ============================================================ */
+  .lock-screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    background: radial-gradient(circle at 50% 40%, #1a0409 0%, #050102 70%);
+    padding: 14px;
+    transition: opacity .5s, visibility .5s;
+  }
+  .lock-screen.hide {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .lock-card {
+    position: relative;
+    width: 340px;
+    padding: 26px 22px 22px;
+    background: linear-gradient(160deg, #14060a 0%, #0a0203 100%);
+    clip-path: polygon(
+      22px 0, 100% 0, 100% calc(100% - 22px),
+      calc(100% - 22px) 100%, 0 100%, 0 22px
+    );
+    box-shadow:
+      0 0 0 1px rgba(255,26,60,.5),
+      0 0 50px rgba(255,26,60,.3),
+      0 0 100px rgba(255,26,60,.12);
+    animation: lockIn .6s ease-out;
+  }
+  @keyframes lockIn {
+    from { opacity: 0; transform: translateY(20px) scale(.94); filter: blur(6px); }
+    to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  }
+
+  .lock-card::before {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    clip-path: polygon(
+      22px 0, 100% 0, 100% calc(100% - 22px),
+      calc(100% - 22px) 100%, 0 100%, 0 22px
+    );
+    border: 1px solid rgba(255,26,60,.3);
+    pointer-events: none;
+  }
+
+  .lock-icon {
+    width: 62px; height: 62px;
+    margin: 0 auto 18px;
+    background: radial-gradient(circle, rgba(255,26,60,.35), transparent 70%);
+    display: grid;
+    place-items: center;
+    position: relative;
+  }
+  .lock-icon::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    background: var(--red);
+    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+    box-shadow: 0 0 30px rgba(255,26,60,.9);
+    animation: lockPulse 2s ease-in-out infinite;
+  }
+  @keyframes lockPulse {
+    50% { box-shadow: 0 0 45px rgba(255,26,60,1), 0 0 70px rgba(255,26,60,.5); }
+  }
+  .lock-icon::after {
+    content: '🔒';
+    position: relative;
+    z-index: 2;
+    font-size: 22px;
+    filter: drop-shadow(0 0 6px rgba(0,0,0,.6));
+  }
+
+  .lock-title {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: #fff;
+    text-shadow: 0 0 12px rgba(255,26,60,.9);
+    margin-bottom: 4px;
+  }
+
+  .lock-sub {
+    text-align: center;
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 22px;
+  }
+
+  .field-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--red-soft);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    text-shadow: 0 0 8px rgba(255,26,60,.5);
+  }
+  .field-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--line), transparent);
+  }
+
+  .key-input {
+    width: 100%;
+    padding: 12px 14px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--red-soft);
+    background: rgba(0,0,0,.6);
+    border: 1px solid rgba(255,26,60,.35);
+    outline: none;
+    text-align: center;
+    transition: .25s;
+    clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px);
+  }
+  .key-input::placeholder { color: #4a1a24; letter-spacing: 1.5px; font-weight: 600; }
+  .key-input:focus {
+    border-color: var(--red);
+    color: #fff;
+    box-shadow:
+      0 0 0 1px rgba(255,26,60,.6),
+      0 0 20px rgba(255,26,60,.5) inset,
+      0 0 16px rgba(255,26,60,.4);
+  }
+  .key-input.error {
+    border-color: #ff2244;
+    animation: shake .35s;
+    box-shadow: 0 0 20px rgba(255,26,60,.6) inset;
+  }
+  .key-input.success {
+    border-color: #22ff88;
+    color: #22ff88;
+    box-shadow:
+      0 0 0 1px rgba(34,255,136,.6),
+      0 0 20px rgba(34,255,136,.4) inset,
+      0 0 20px rgba(34,255,136,.4);
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-7px); }
+    75% { transform: translateX(7px); }
+  }
+
+  .key-msg {
+    min-height: 16px;
+    margin-top: 10px;
+    font-size: 9.5px;
+    letter-spacing: 1.5px;
+    text-align: center;
+    text-transform: uppercase;
+    font-weight: 800;
+    transition: .3s;
+  }
+  .key-msg.err { color: #ff2244; text-shadow: 0 0 8px rgba(255,26,60,.8); }
+  .key-msg.ok  { color: #22ff88; text-shadow: 0 0 8px rgba(34,255,136,.8); }
+
+  .unlock-btn {
+    width: 100%;
+    margin-top: 14px;
+    padding: 13px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #fff;
+    background: linear-gradient(90deg, var(--red-dim), var(--red));
+    border: 1px solid var(--red);
+    cursor: pointer;
+    clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
+    box-shadow: 0 0 20px rgba(255,26,60,.5);
+    transition: .25s;
+  }
+  .unlock-btn:hover {
+    background: linear-gradient(90deg, var(--red), #ff5060);
+    box-shadow: 0 0 30px rgba(255,26,60,.9), 0 0 50px rgba(255,26,60,.5);
+    letter-spacing: 4px;
+  }
+  .unlock-btn:active { transform: scale(.98); }
+
+  .lock-hint {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,26,60,.15);
+    font-size: 8.5px;
+    letter-spacing: 1.5px;
+    color: #3a1a24;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  /* ============================================================
+     ====== MAIN PANEL — LANDSCAPE ======
+     ============================================================ */
+  .panel {
+    position: relative;
+    width: 100%;
+    max-width: 960px;
+    max-height: 96vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(160deg, #14060a 0%, #0a0203 100%);
+    clip-path: polygon(
+      22px 0, 100% 0, 100% calc(100% - 22px),
+      calc(100% - 22px) 100%, 0 100%, 0 22px
+    );
+    box-shadow:
+      0 0 0 1px rgba(255,26,60,.5),
+      0 0 50px rgba(255,26,60,.28),
+      0 0 120px rgba(255,26,60,.12);
+    opacity: 0;
+    transform: translateY(20px) scale(.97);
+    transition: opacity .55s, transform .55s;
+    pointer-events: none;
+    visibility: hidden;
+  }
+  .panel.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+    visibility: visible;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    clip-path: polygon(
+      22px 0, 100% 0, 100% calc(100% - 22px),
+      calc(100% - 22px) 100%, 0 100%, 0 22px
+    );
+    border: 1px solid var(--line);
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* ===== Topbar ===== */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 20px;
+    background: linear-gradient(90deg, rgba(255,26,60,.12), transparent 60%);
+    border-bottom: 1px solid var(--line);
+    position: relative;
+    flex: 0 0 auto;
+  }
+  .topbar::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 20px;
+    width: 80px; height: 2px;
+    background: var(--red);
+    box-shadow: 0 0 14px var(--red);
+  }
+
+  .brand { display: flex; align-items: center; gap: 10px; }
+
+  .brand-mark {
+    width: 34px; height: 34px;
+    background: var(--red);
+    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+    display: grid;
+    place-items: center;
+    font-size: 17px;
+    color: #fff;
+    box-shadow: 0 0 22px rgba(255,26,60,.85);
+    animation: markPulse 2s ease-in-out infinite;
+  }
+  @keyframes markPulse {
+    50% { box-shadow: 0 0 32px rgba(255,26,60,1), 0 0 55px rgba(255,26,60,.5); }
+  }
+
+  .brand-text .b1 {
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255,26,60,.85);
+  }
+  .brand-text .b2 {
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    color: var(--red-soft);
+    margin-top: 1px;
+  }
+
+  /* Chỉ số HUD ngang */
+  .hud-stats {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    background: rgba(255,26,60,.06);
+    border: 1px solid rgba(255,26,60,.25);
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  }
+  .stat-lbl {
+    font-size: 8.5px;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    font-weight: 800;
+  }
+  .stat-val {
+    font-size: 12px;
+    font-weight: 900;
+    color: var(--red);
+    text-shadow: 0 0 8px rgba(255,26,60,.8);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 1px;
+  }
+  .stat-val.led-off { color: #6b1520; text-shadow: none; }
+  .stat-val.led-on {
+    color: #ff2244;
+    text-shadow: 0 0 10px #ff2244, 0 0 20px rgba(255,26,60,.6);
+    animation: blink 1.2s steps(2) infinite;
+  }
+  @keyframes blink { 50% { opacity: .45; } }
+
+  /* ===== Body: chia 2 cột ===== */
+  .body {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* === Sidebar trái === */
+  .sidebar {
+    flex: 0 0 260px;
+    padding: 16px 14px;
+    border-right: 1px solid var(--line);
+    overflow-y: auto;
+    background: linear-gradient(180deg, rgba(255,26,60,.03), transparent);
+    scrollbar-width: thin;
+    scrollbar-color: var(--red) transparent;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+  /* === Vùng phải (modules) === */
+  .main-area {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 16px 18px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--red) transparent;
+  }
+  .main-area::-webkit-scrollbar { width: 4px; }
+  .main-area::-webkit-scrollbar-thumb { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+  /* ===== Tiêu đề section ===== */
+  .sec-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 2.5px;
+    color: var(--red-soft);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    text-shadow: 0 0 8px rgba(255,26,60,.6);
+  }
+  .sec-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--line), transparent);
+  }
+  .sec-title .dot {
+    width: 5px; height: 5px;
+    background: var(--red);
+    box-shadow: 0 0 8px var(--red);
+  }
+
+  /* ===== File block ===== */
+  .file-block {
+    margin-bottom: 18px;
+    padding: 11px;
+    background: rgba(255,26,60,.04);
+    border: 1px solid rgba(255,26,60,.2);
+    clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
+    transition: .3s;
+  }
+  .file-block:hover { border-color: rgba(255,26,60,.5); }
+
+  .file-btn {
+    width: 100%;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: var(--red-soft);
+    background: linear-gradient(90deg, rgba(255,26,60,.15), rgba(255,26,60,.02));
+    border: 1px solid rgba(255,26,60,.4);
+    cursor: pointer;
+    clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px);
+    transition: .25s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .file-btn:hover {
+    color: #fff;
+    background: linear-gradient(90deg, rgba(255,26,60,.4), rgba(255,26,60,.1));
+    box-shadow: 0 0 20px rgba(255,26,60,.5);
+    letter-spacing: 2.5px;
+  }
+  .file-btn:active { transform: scale(.98); }
+
+  .file-info {
+    margin-top: 9px;
+    padding: 7px 9px;
+    font-size: 9.5px;
+    letter-spacing: .3px;
+    color: var(--text-dim);
+    background: rgba(0,0,0,.5);
+    border-left: 3px solid #3a0a14;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    word-break: break-all;
+    transition: .3s;
+  }
+  .file-info.has-file {
+    color: var(--red-soft);
+    border-left-color: var(--red);
+    box-shadow: 0 0 12px rgba(255,26,60,.3) inset;
+  }
+  .file-info .fi-icon { color: var(--red); font-size: 11px; flex: 0 0 auto; }
+
+  /* ===== DPI block ===== */
+  .dpi-block {
+    padding: 11px;
+    background: rgba(255,26,60,.04);
+    border: 1px solid rgba(255,26,60,.2);
+    clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
+  }
+  .dpi-display {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 9px;
+  }
+  .dpi-display .lbl {
+    font-size: 9.5px;
+    letter-spacing: 2px;
+    color: var(--red-soft);
+    text-transform: uppercase;
+    font-weight: 800;
+  }
+  .dpi-num {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--red);
+    text-shadow: 0 0 14px rgba(255,26,60,1), 0 0 30px rgba(255,26,60,.5);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+  .dpi-num small {
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    margin-left: 3px;
+  }
+
+  input[type="range"].dpi {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(
+      90deg,
+      var(--red) 0%,
+      var(--red) var(--fill, 50%),
+      #2a0810 var(--fill, 50%),
+      #2a0810 100%
+    );
+    outline: none;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(255,26,60,.3);
+  }
+  input[type="range"].dpi::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    background: var(--red);
+    border: 2px solid #fff;
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    box-shadow: 0 0 14px var(--red);
+    transition: .15s;
+  }
+  input[type="range"].dpi::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 22px var(--red), 0 0 34px rgba(255,26,60,.7);
+    transform: scale(1.15);
+  }
+  input[type="range"].dpi::-moz-range-thumb {
+    width: 14px; height: 14px;
+    background: var(--red);
+    border: 2px solid #fff;
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    box-shadow: 0 0 14px var(--red);
+    cursor: pointer;
+  }
+  .dpi-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 8px;
+    letter-spacing: 1px;
+    color: #4a1a24;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  /* ===== Grid modules 3 cột ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .card {
+    position: relative;
+    padding: 11px 11px 12px;
+    background: rgba(255,26,60,.03);
+    border: 1px solid rgba(255,26,60,.15);
+    clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
+    cursor: pointer;
+    transition: .25s;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 0; height: 2px;
+    background: var(--red);
+    box-shadow: 0 0 10px var(--red);
+    transition: .35s;
+  }
+  .card:hover {
+    background: rgba(255,26,60,.07);
+    border-color: rgba(255,26,60,.4);
+  }
+  .card.on {
+    background: linear-gradient(160deg, rgba(255,26,60,.2), rgba(255,26,60,.04));
+    border-color: var(--red);
+    box-shadow:
+      0 0 18px rgba(255,26,60,.35),
+      0 0 30px rgba(255,26,60,.15),
+      0 0 0 1px rgba(255,26,60,.3) inset;
+  }
+  .card.on::before { width: 100%; }
+  .card.locked {
+    opacity: .3;
+    filter: grayscale(.8);
+    pointer-events: none;
+  }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    margin-bottom: 7px;
+  }
+  .card-name {
+    font-size: 10.5px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    color: var(--text);
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card.on .card-name {
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255,26,60,1), 0 0 20px rgba(255,26,60,.5);
+  }
+  .card-tag {
+    flex: 0 0 auto;
+    font-size: 7px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    padding: 1px 5px;
+    color: #fff;
+    background: var(--red);
+    box-shadow: 0 0 8px rgba(255,26,60,.8);
+    text-transform: uppercase;
+  }
+  .card-tag.fake {
+    background: linear-gradient(90deg, #ff2244, #ff7a00);
+    box-shadow: 0 0 10px rgba(255,90,0,.9);
+  }
+  .card-desc {
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: .2px;
+    line-height: 1.35;
+    margin-bottom: 13px;
+    min-height: 24px;
+  }
+  .card.on .card-desc { color: #c08a94; }
+
+  .toggle-bar {
+    position: relative;
+    height: 5px;
+    background: #2a0810;
+    border: 1px solid rgba(255,26,60,.15);
+    transition: .3s;
+  }
+  .toggle-bar::after {
+    content: 'OFF';
+    position: absolute;
+    right: 0;
+    top: -13px;
+    font-size: 7px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    color: #4a1a24;
+    transition: .3s;
+  }
+  .toggle-fill {
+    position: absolute;
+    top: -1px; left: -1px;
+    width: 6px;
+    height: 5px;
+    background: var(--red);
+    box-shadow: 0 0 10px var(--red);
+    transition: .35s cubic-bezier(.4,0,.2,1);
+  }
+  .card.on .toggle-fill {
+    width: calc(100% + 2px);
+    box-shadow: 0 0 16px var(--red), 0 0 26px rgba(255,26,60,.6);
+  }
+  .card.on .toggle-bar::after {
+    content: 'ON';
+    color: var(--red);
+    text-shadow: 0 0 8px var(--red);
+  }
+
+  .card.fake.on {
+    background: linear-gradient(160deg, rgba(255,90,0,.22), rgba(255,26,60,.06));
+    border-color: #ff5a00;
+    box-shadow:
+      0 0 18px rgba(255,90,0,.4),
+      0 0 30px rgba(255,26,60,.2),
+      0 0 0 1px rgba(255,90,0,.35) inset;
+  }
+  .card.fake.on::before {
+    background: linear-gradient(90deg, #ff2244, #ff7a00);
+    box-shadow: 0 0 12px #ff5a00;
+  }
+  .card.fake.on .card-name {
+    text-shadow: 0 0 10px rgba(255,90,0,1), 0 0 20px rgba(255,90,0,.5);
+  }
+  .card.fake.on .toggle-fill {
+    background: linear-gradient(90deg, #ff2244, #ff7a00);
+    box-shadow: 0 0 16px #ff5a00, 0 0 26px rgba(255,90,0,.6);
+  }
+  .card.fake.on .toggle-bar::after {
+    color: #ff7a00;
+    text-shadow: 0 0 8px #ff5a00;
+  }
+
+  /* ===== Footer ===== */
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    border-top: 1px solid var(--line);
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    font-weight: 700;
+    background: linear-gradient(90deg, transparent, rgba(255,26,60,.06));
+    flex: 0 0 auto;
+  }
+  .footer b {
+    color: var(--red);
+    text-shadow: 0 0 8px rgba(255,26,60,.8);
+    font-weight: 900;
+  }
+
+  /* ============================================================
+     ====== RESPONSIVE ======
+     ============================================================ */
+  @media (max-width: 860px) {
+    .grid { grid-template-columns: repeat(2, 1fr); }
+    .sidebar { flex: 0 0 230px; }
+  }
+
+  @media (max-width: 720px) {
+    body { padding: 8px; }
+    .panel {
+      clip-path: polygon(
+        16px 0, 100% 0, 100% calc(100% - 16px),
+        calc(100% - 16px) 100%, 0 100%, 0 16px
+      );
+    }
+    .panel::before {
+      clip-path: polygon(
+        16px 0, 100% 0, 100% calc(100% - 16px),
+        calc(100% - 16px) 100%, 0 100%, 0 16px
+      );
+    }
+    .body { flex-direction: column; overflow-y: auto; }
+    .sidebar {
+      flex: 0 0 auto;
+      width: 100%;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+      overflow: visible;
+    }
+    .main-area { overflow: visible; }
+    .grid { grid-template-columns: repeat(2, 1fr); }
+    .hud-stats { gap: 8px; }
+    .stat { padding: 4px 8px; }
+    .stat-lbl { display: none; }
+    .brand-text .b2 { display: none; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ============================================================
+       ====== LOCK SCREEN ======
+       ============================================================ -->
+  <div class="lock-screen" id="lockScreen">
+    <div class="lock-card">
+
+      <div class="lock-icon"></div>
+
+      <div class="lock-title">ACCESS DENIED</div>
+      <div class="lock-sub">// LICENSE VERIFICATION REQUIRED</div>
+
+      <div class="field-label">◇ ENTER LICENSE KEY</div>
+      <input type="text"
+             class="key-input"
+             id="keyInput"
+             placeholder="XXXX-XXXX-XXXX-XXXX"
+             autocomplete="off"
+             spellcheck="false">
+
+      <div class="key-msg" id="keyMsg"></div>
+
+      <button class="unlock-btn" id="unlockBtn">▶ UNLOCK SYSTEM</button>
+
+      <div class="lock-hint">SECURE LICENSE · v2.2 · ENCRYPTED</div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ====== MAIN PANEL — LANDSCAPE ======
+       ============================================================ -->
+  <div class="panel" id="panel">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-mark">◈</div>
+        <div class="brand-text">
+          <div class="b1">FF TACTICAL</div>
+          <div class="b2">// HUD v2.2 · LANDSCAPE</div>
+        </div>
+      </div>
+
+      <div class="hud-stats">
+        <div class="stat">
+          <span class="stat-lbl">Module</span>
+          <span class="stat-val" id="countTxt">0/9</span>
+        </div>
+        <div class="stat">
+          <span class="stat-lbl">System</span>
+          <span class="stat-val led-off" id="stateTxt">IDLE</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Body: sidebar + main -->
+    <div class="body">
+
+      <!-- Sidebar: file + DPI -->
+      <div class="sidebar">
+
+        <div class="sec-title"><span class="dot"></span> TỆP AIM</div>
+        <div class="file-block">
+          <button class="file-btn" id="aimFileBtn">
+            <span>⤒</span> LOAD AIM FILE
+          </button>
+          <div class="file-info" id="aimFileInfo">
+            <span class="fi-icon">◇</span>
+            <span id="fileNameText">NO_FILE_SELECTED</span>
+          </div>
+          <input type="file" id="aimFileInput" hidden accept="*/*">
+        </div>
+
+        <div class="sec-title"><span class="dot"></span> DPI CONFIG</div>
+        <div class="dpi-block">
+          <div class="dpi-display">
+            <div class="lbl">SENSITIVITY</div>
+            <div class="dpi-num"><span id="dpiVal">60</span><small>DPI</small></div>
+          </div>
+          <input type="range" class="dpi" id="dpiRange" min="1" max="120" step="1" value="60">
+          <div class="dpi-scale">
+            <span>01</span><span>30</span><span>60</span><span>90</span><span>120</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Main area: module grid -->
+      <div class="main-area">
+        <div class="sec-title"><span class="dot"></span> MODULES</div>
+        <div class="grid" id="grid"></div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <span>SECURE MODE · <b>ENABLED</b></span>
+      <span>FF TACTICAL HUD · v2.2</span>
+    </div>
+
+  </div>
+
+<script>
+  /* ============================================================
+     ====== LICENSE KEY SYSTEM ======
+     ============================================================ */
+  const VALID_KEY = 'tundominatevip2026';
+
+  const lockScreen = document.getElementById('lockScreen');
+  const keyInput   = document.getElementById('keyInput');
+  const keyMsg     = document.getElementById('keyMsg');
+  const unlockBtn  = document.getElementById('unlockBtn');
+  const panel      = document.getElementById('panel');
+
+  function tryUnlock() {
+    const value = keyInput.value.trim();
+
+    if (!value) {
+      showMsg('⚠ KEY KHÔNG ĐƯỢC ĐỂ TRỐNG', 'err');
+      shakeInput();
+      return;
+    }
+
+    if (value === VALID_KEY) {
+      keyInput.classList.remove('error');
+      keyInput.classList.add('success');
+      showMsg('✓ KEY HỢP LỆ — ĐANG MỞ KHÓA...', 'ok');
+      setTimeout(() => {
+        lockScreen.classList.add('hide');
+        panel.classList.add('show');
+      }, 700);
+    } else {
+      showMsg('✕ KEY SAI — TRUY CẬP BỊ TỪ CHỐI', 'err');
+      shakeInput();
+    }
+  }
+
+  function showMsg(text, type) {
+    keyMsg.textContent = text;
+    keyMsg.className = 'key-msg ' + type;
+  }
+
+  function shakeInput() {
+    keyInput.classList.remove('error');
+    void keyInput.offsetWidth;
+    keyInput.classList.add('error');
+    setTimeout(() => keyInput.classList.remove('error'), 400);
+  }
+
+  unlockBtn.addEventListener('click', tryUnlock);
+  keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryUnlock(); });
+  keyInput.addEventListener('input', () => {
+    if (keyMsg.textContent) {
+      keyMsg.textContent = '';
+      keyMsg.className = 'key-msg';
+    }
+  });
+
+  /* ============================================================
+     ====== MODULE CONFIG ======
+     ============================================================ */
+  const MODULES = [
+    { key:'aim',    name:'AimLock',     desc:'Auto lock target system',   main:true },
+    { key:'head',   name:'Bám Đầu',     desc:'Head tracking priority',    dep:true  },
+    { key:'smooth', name:'Nhẹ Tâm',     desc:'Smooth aim assistant',      dep:true  },
+    { key:'fps',    name:'Boots FPS',   desc:'Boost FPS & reduce lag',    dep:false },
+    { key:'shake',  name:'Fix Rung',    desc:'Remove recoil shake',       dep:true  },
+    { key:'ammo',   name:'Fix Lặp Đạn', desc:'Anti ammo loop system',     dep:true  },
+    { key:'over',   name:'Fix Lố',      desc:'Aim overshoot limiter',     dep:true  },
+    { key:'fakeaim',  name:'Fake Aim',  desc:'Hiệu ứng ngắm ảo',          fake:true, dep:true },
+    { key:'fakedrag', name:'Fake Drag', desc:'Giả lập kéo tâm',           fake:true, dep:true }
+  ];
+
+  const state = {};
+  MODULES.forEach(m => state[m.key] = false);
+
+  let aimFile = null;
+  let dpiValue = 60;
+
+  /* ============ RENDER CARDS ============ */
+  const grid = document.getElementById('grid');
+
+  MODULES.forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    if (m.fake) card.classList.add('fake');
+    card.id = 'card-' + m.key;
+    card.innerHTML = `
+      <div class="card-head">
+        <div class="card-name">${m.name}</div>
+        ${m.main ? '<div class="card-tag">Core</div>' : ''}
+        ${m.fake ? '<div class="card-tag fake">Fake</div>' : ''}
+      </div>
+      <div class="card-desc">${m.desc}</div>
+      <div class="toggle-bar"><div class="toggle-fill"></div></div>
+    `;
+    card.addEventListener('click', () => toggle(m.key));
+    grid.appendChild(card);
+  });
+
+  /* ============ FILE PICKER ============ */
+  const fileInput = document.getElementById('aimFileInput');
+  const fileBtn   = document.getElementById('aimFileBtn');
+  const fileInfo  = document.getElementById('aimFileInfo');
+  const fileNameTx= document.getElementById('fileNameText');
+
+  fileBtn.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    aimFile = f;
+    fileInfo.classList.add('has-file');
+    fileNameTx.textContent = f.name + ' [' + (f.size/1024).toFixed(1) + 'KB]';
+  });
+
+  /* ============ DPI ============ */
+  const dpiRange = document.getElementById('dpiRange');
+  const dpiValEl = document.getElementById('dpiVal');
+
+  function updateDpi(v) {
+    dpiValue = Number(v);
+    dpiValEl.textContent = dpiValue;
+    const pct = ((dpiValue - 1) / 119) * 100;
+    dpiRange.style.setProperty('--fill', pct + '%');
+  }
+  dpiRange.addEventListener('input', e => updateDpi(e.target.value));
+  updateDpi(dpiValue);
+
+  /* ============ TOGGLE LOGIC ============ */
+  function toggle(key) {
+    const mod = MODULES.find(m => m.key === key);
+    if (mod.dep && !state.aim) return;
+
+    state[key] = !state[key];
+
+    if (key === 'aim' && !state.aim) {
+      MODULES.filter(m => m.dep).forEach(m => state[m.key] = false);
+    }
+    updateUI();
+  }
+
+  function updateUI() {
+    let count = 0;
+    MODULES.forEach(m => {
+      const on = state[m.key];
+      if (on) count++;
+      document.getElementById('card-' + m.key).classList.toggle('on', on);
+      if (m.dep) {
+        document.getElementById('card-' + m.key).classList.toggle('locked', !state.aim);
+      }
+    });
+
+    const stateEl = document.getElementById('stateTxt');
+    stateEl.textContent = state.aim ? 'ACTIVE' : 'IDLE';
+    stateEl.classList.toggle('led-on', state.aim);
+    stateEl.classList.toggle('led-off', !state.aim);
+
+    document.getElementById('countTxt').textContent = count + '/' + MODULES.length;
+  }
+
+  updateUI();
+</script>
+
+</body>
+</html>
